@@ -8,6 +8,16 @@ Collapse a table so that each column contains only unique values
 
     Create this ouput with unique values on each column is a table
 
+       CONTENTS
+         1 uniques macro
+
+         2 summary and update
+           nice combination of proc summary and update
+           Keintz, Mark
+           mkeintz@outlook.com
+
+         3 Save macro in autocall
+
     INPUT
     WORK.PRDSALE total obs=1,440
 
@@ -24,11 +34,13 @@ Collapse a table so that each column contains only unique values
     https://tinyurl.com/mu9synkw
     https://github.com/rogerjdeangelis/utl-collapse-a-table-so-that-each-column-contains-only-unique-values-cardinality-matrix
 
+
     /***************************************************************************************************************************/
     /*              INPUT                             |        PROCESS             |            OUTPUT                         */
     /*              =====                             |        =======             |            ======                         */
-    /* WORK.PRDSALE total obs=1,440                   |                            |                                           */
-    /*                                                | STEPS                      | If you call without any datasets(log)     */
+    /*                                                |                            |                                           */
+    /* WORK.PRDSALE total obs=1,440                   |1 UNIQUES MACRO             |                                           */
+    /*                                                |===============             | If you call without any datasets(log)     */
     /*  Obs COUNTRY REGION  DIVISION  PRODTYPE PRODUCT|                            |                                           */
     /*                                                | 1 use freq to get nlevels  | **** Please provide inp dataset  ****     */
     /*    1  CANADA   EAST  EDUCATION FURNITURE  SOFA |   sort fesc nlevels        | **** Please provide out dataset  ****     */
@@ -51,11 +63,53 @@ Collapse a table so that each column contains only unique values
     /*                                                |                            | TABLE                                     */
     /*                                                | %utl_uniques(prdsale,want) |                                           */
     /*                                                |                            |                                           */
+    /*                                                |------------------------------------------------------------------------*/
     /*                                                |                            |                                           */
+    /*                                                | 2 SUMMARY AND UPDATE       | SUMMARY OUTPUT  WORK.NEED                 */
+    /*                                                |   Keintz, Mark             |                                           */
+    /*                                                |   mkeintz@outlook.com      | COUNTRY REGION DIVISION  PRODTYPE  _TYPE_ */
+    /*                                                |   also see below           |                                           */
+    /*                                                | =====================      |                                           */
+    /*                                                |                            |                                           */
+    /*                                                | %let vars=country          |                          FURNITURE    1   */
+    /*                                                |          region            |                          OFFICE       1   */
+    /*                                                |         division           |                CONSUMER               2   */
+    /*                                                |         prodtype;          |                EDUCATION              2   */
+    /*                                                |                            |          EAST                         4   */
+    /*                                                |  proc summary data=        |          WEST                         4   */
+    /*                                                |    sashelp.prdsale missing;| CANADA                                8   */
+    /*                                                |   class &vars;             | GERMANY                               8   */
+    /*                                                |   ways 1;                  | U.S.A.                                8   */
+    /*                                                |   output out=need(         |-------------------------------------------*/
+    /*                                                |     drop=_freq_);          | WORK.NEED2                                */
+    /*                                                |  run;                      |                                    ROW    */
+    /*                                                |                            |                                TO UPDATE  */
+    /*                                                |  data need2(drop=_type_) ; |                                           */
+    /*                                                |    set need;               | COUNTRY REGION DIVISION  PRODTYPE   _ROW  */
+    /*                                                |    by _type_;              |                                           */
+    /*                                                |    _row+1;                 |                          FURNITURE    1   */
+    /*                                                |    if first._type_         |                          OFFICE       2   */
+    /*                                                |       then _row=1;         |                CONSUMER               1   */
+    /*                                                |  run;                      |                EDUCATION              2   */
+    /*                                                |                            |          EAST                         1   */
+    /*                                                |  proc sort ;               |          WEST                         2   */
+    /*                                                |    by _row ;               | CANADA                                1   */
+    /*                                                |  run;                      | GERMANY                               2   */
+    /*                                                |                            | U.S.A.                                3   */
+    /*                                                |  data want (keep=&vars);   |                                           */
+    /*                                                |    update need2 (obs=0)    |-------------------------------------------*/
+    /*                                                |           need2;           | FINAL WOR.WANT                            */
+    /*                                                |    by _row;                |                                           */
+    /*                                                |  run;                      | COUNTRY REGION DIVISION  PRODTYPE         */
+    /*                                                |                            |                                           */
+    /*                                                |                            | CANADA   EAST  CONSUMER  FURNITURE        */
+    /*                                                |                            | GERMANY  WEST  EDUCATION OFFICE           */
+    /*                                                |                            | U.S.A.                                    */
     /*------------------------------------------------|------------------------------------------------------------------------*/
-    /*                                                |  MACRO                                                                 */
+    /*                                                | 3 SAVE MACRO IN AUTOCALL                                               */
+    /*                                                |   see below                                                            */
+    /*                                                | ========================                                               */
     /*                                                |                                                                        */
-    /*                                                |  /*---- for development ----*/                                         */
     /*                                                |  proc datasets lib=work                                                */
     /*                                                |   nolist nodetails ;                                                   */
     /*                                                |   delete sasmac1 sasmac2 sasmac3 /  mt=cat;                            */
@@ -174,22 +228,110 @@ Collapse a table so that each column contains only unique values
     /* 1440  U.S.A.   WEST  CONSUMER  OFFICE     DESK                                                                          */
     /***************************************************************************************************************************/
 
-    /*
-     _ __  _ __ ___   ___ ___  ___ ___
-    | `_ \| `__/ _ \ / __/ _ \/ __/ __|
-    | |_) | | | (_) | (_|  __/\__ \__ \
-    | .__/|_|  \___/ \___\___||___/___/
-    |_|
+    /*               _
+    / |  _   _ _ __ (_) __ _ _   _  ___  ___   _ __ ___   __ _  ___ _ __ ___
+    | | | | | | `_ \| |/ _` | | | |/ _ \/ __| | `_ ` _ \ / _` |/ __| `__/ _ \
+    | | | |_| | | | | | (_| | |_| |  __/\__ \ | | | | | | (_| | (__| | | (_) |
+    |_|  \__,_|_| |_|_|\__, |\__,_|\___||___/ |_| |_| |_|\__,_|\___|_|  \___/
+                          |_|
     */
+
 
     %utl_uniques(prdsale,want);
 
-    /*
-     _ __ ___   __ _  ___ _ __ ___
-    | `_ ` _ \ / _` |/ __| `__/ _ \
-    | | | | | | (_| | (__| | | (_) |
-    |_| |_| |_|\__,_|\___|_|  \___/
+    /**************************************************************************************************************************/
+    /* PRODUCT    COUNTRY    REGION    DIVISION     PRODTYPE                                                                  */
+    /*                                                                                                                        */
+    /*  BED       CANADA      EAST     CONSUMER     FURNITURE                                                                 */
+    /*  CHAIR     GERMANY     WEST     EDUCATION    OFFICE                                                                    */
+    /*  DESK      U.S.A.                                                                                                      */
+    /*  SOFA                                                                                                                  */
+    /*  TABLE                                                                                                                 */
+    /**************************************************************************************************************************/
 
+    /*___                                                                     _                  _       _
+    |___ \   ___ _   _ _ __ ___  _ __ ___   __ _ _ __ _   _    __ _ _ __   __| | _   _ _ __   __| | __ _| |_ ___
+      __) | / __| | | | `_ ` _ \| `_ ` _ \ / _` | `__| | | |  / _` | `_ \ / _` || | | | `_ \ / _` |/ _` | __/ _ \
+     / __/  \__ \ |_| | | | | | | | | | | | (_| | |  | |_| | | (_| | | | | (_| || |_| | |_) | (_| | (_| | ||  __/
+    |_____| |___/\__,_|_| |_| |_|_| |_| |_|\__,_|_|   \__, |  \__,_|_| |_|\__,_| \__,_| .__/ \__,_|\__,_|\__\___|
+                                                      |___/                           |_|
+    */
+
+    %let vars=country region division prodtype;
+
+    proc summary data=
+      sashelp.prdsale missing;
+     class &vars;
+     ways 1;
+     output out=need(
+       drop=_freq_);
+    run;
+
+    data need2(drop=_type_) ;
+      set need;
+      by _type_;
+      _row+1;
+      if first._type_
+         then _row=1;
+    run;
+
+    proc sort ;
+      by _row ;
+    run;
+
+    data want (keep=&vars);
+      update need2 (obs=0)
+             need2;
+      by _row;
+    run;
+
+    /**************************************************************************************************************************/
+    /*                                                                                                                        */
+    /*   SUMMARY OUTPUT  WORK.NEED                                                                                            */
+    /*                                                                                                                        */
+    /*   COUNTRY REGION DIVISION  PRODTYPE  _TYPE_                                                                            */
+    /*                                                                                                                        */
+    /*                                                                                                                        */
+    /*                            FURNITURE    1                                                                              */
+    /*                            OFFICE       1                                                                              */
+    /*                  CONSUMER               2                                                                              */
+    /*                  EDUCATION              2                                                                              */
+    /*            EAST                         4                                                                              */
+    /*            WEST                         4                                                                              */
+    /*   CANADA                                8                                                                              */
+    /*   GERMANY                               8                                                                              */
+    /*   U.S.A.                                8                                                                              */
+    /*---------------------------------------------                                                                           */
+    /*   WORK.NEED2                                                                                                           */
+    /*                                      ROW                                                                               */
+    /*                                  TO UPDATE                                                                             */
+    /*                                                                                                                        */
+    /*   COUNTRY REGION DIVISION  PRODTYPE   _ROW                                                                             */
+    /*                                                                                                                        */
+    /*                            FURNITURE    1                                                                              */
+    /*                            OFFICE       2                                                                              */
+    /*                  CONSUMER               1                                                                              */
+    /*                  EDUCATION              2                                                                              */
+    /*            EAST                         1                                                                              */
+    /*            WEST                         2                                                                              */
+    /*   CANADA                                1                                                                              */
+    /*   GERMANY                               2                                                                              */
+    /*   U.S.A.                                3                                                                              */
+    /*                                                                                                                        */
+    /*---------------------------------------------                                                                           */
+    /*   FINAL WOR.WANT                                                                                                       */
+    /*                                                                                                                        */
+    /*   COUNTRY REGION DIVISION  PRODTYPE                                                                                    */
+    /*                                                                                                                        */
+    /*   CANADA   EAST  CONSUMER  FURNITURE                                                                                   */
+    /*   GERMANY  WEST  EDUCATION OFFICE                                                                                      */
+    /**************************************************************************************************************************/
+
+    /*____   _                 _                                               _                  _ _
+    |___ /  | | ___   __ _  __| |  _ __ ___   __ _  ___ _ __ ___    __ _ _   _| |_ ___   ___ __ _| | |
+      |_ \  | |/ _ \ / _` |/ _` | | `_ ` _ \ / _` |/ __| `__/ _ \  / _` | | | | __/ _ \ / __/ _` | | |
+     ___) | | | (_) | (_| | (_| | | | | | | | (_| | (__| | | (_) || (_| | |_| | || (_) | (_| (_| | | |
+    |____/  |_|\___/ \__,_|\__,_| |_| |_| |_|\__,_|\___|_|  \___/  \__,_|\__,_|\__\___/ \___\__,_|_|_|
     */
 
     /*---- for development ----*/
@@ -282,19 +424,6 @@ Collapse a table so that each column contains only unique values
     %mend utl_uniques;
     ;;;;
     run;quit;
-
-    /**************************************************************************************************************************/
-    /* WORK.WANT total obs=5                                                                                                  */
-    /*                                                                                                                        */
-    /* Obs    PRODUCT    COUNTRY    REGION    DIVISION     PRODTYPE                                                           */
-    /*                                                                                                                        */
-    /*  1      BED       CANADA      EAST     CONSUMER     FURNITURE                                                          */
-    /*  2      CHAIR     GERMANY     WEST     EDUCATION    OFFICE                                                             */
-    /*  3      DESK      U.S.A.                                                                                               */
-    /*  4      SOFA                                                                                                           */
-    /*  5      TABLE                                                                                                          */
-    /**************************************************************************************************************************/
-
     /*              _
       ___ _ __   __| |
      / _ \ `_ \ / _` |
